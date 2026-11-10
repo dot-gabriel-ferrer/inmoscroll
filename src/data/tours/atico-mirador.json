@@ -1,0 +1,224 @@
+{
+  "id": "atico-mirador",
+  "title": "Ático Mirador",
+  "tagline": "Ático de diseño con terraza panorámica orientada al sur",
+  "location": "Chamberí, Madrid",
+  "price": 500000,
+  "currency": "EUR",
+  "areaM2": 120,
+  "bedrooms": 1,
+  "bathrooms": 1,
+  "technology": "Malla GLB · Meshopt",
+  "agent": {
+    "name": "Lucía Ferrer",
+    "agency": "InmoScroll Homes",
+    "email": "lucia.ferrer@inmoscroll.example",
+    "phone": "+34 900 000 000"
+  },
+  "scene": {
+    "type": "gltf",
+    "url": "atico-mirador.glb"
+  },
+  "lighting": {
+    "sunDirection": [3, 6, 10],
+    "day": {
+      "sun": 4.2,
+      "sunColor": "#fff1dc",
+      "ambient": 1,
+      "background": "#dbe6f0"
+    },
+    "night": {
+      "sun": 0.25,
+      "sunColor": "#9db4ff",
+      "ambient": 0.16,
+      "background": "#0a0f1c"
+    }
+  },
+  "camera": {
+    "fov": 60,
+    "lookAhead": 0.06,
+    "scrub": 0.8,
+    "scrollLength": 11,
+    "waypoints": [
+      [-0.6, 1.55, -2.9],
+      [-1.2, 1.5, -1.6],
+      [-0.9, 1.5, -0.2],
+      [0.3, 1.48, 1.0],
+      [1.7, 1.48, 1.3],
+      [4.6, 1.5, 1.0],
+      [5.55, 1.5, -0.55],
+      [6.6, 1.5, -0.6],
+      [6.8, 1.5, 0.6],
+      [7.0, 1.5, 2.4],
+      [7.6, 1.55, 4.2],
+      [6.4, 1.6, 4.7],
+      [4.6, 1.65, 4.6]
+    ]
+  },
+  "chapters": [
+    {
+      "id": "bienvenida",
+      "eyebrow": "Chamberí, Madrid",
+      "title": "Ático Mirador",
+      "description": "Desliza para recorrer la vivienda. Cada estancia se presenta sola, a tu ritmo.",
+      "range": [0, 0.06],
+      "stats": [
+        {
+          "label": "Precio",
+          "value": "500.000 €"
+        },
+        {
+          "label": "Superficie",
+          "value": "120 m²"
+        }
+      ],
+      "annotations": [],
+      "cardSide": "left"
+    },
+    {
+      "id": "salon",
+      "eyebrow": "01 · Zona de día",
+      "title": "Salón Abierto",
+      "description": "Cuarenta metros diáfanos con ventanales de suelo a techo orientados al sur. La pared de lamas de nogal integra el mueble suspendido y la iluminación indirecta.",
+      "range": [0.06, 0.22],
+      "stats": [
+        {
+          "label": "Superficie",
+          "value": "42 m²"
+        },
+        {
+          "label": "Orientación",
+          "value": "Sur"
+        }
+      ],
+      "focusPoint": [-4.4, 0.8, 1.5],
+      "focusStrength": 0.55,
+      "annotations": [
+        {
+          "id": "salon-ventanales",
+          "label": "Ventanales al sur",
+          "detail": "Carpintería de aluminio con rotura de puente térmico y vidrio bajo emisivo.",
+          "position": [-3.0, 1.9, 3.45]
+        },
+        {
+          "id": "salon-nogal",
+          "label": "Pared de nogal",
+          "detail": "Lamas macizas con mueble suspendido y tira LED regulable.",
+          "position": [-5.9, 1.55, 2.1]
+        },
+        {
+          "id": "salon-sofa",
+          "label": "Sofá modular",
+          "detail": "Incluido en la venta junto con el resto del mobiliario del salón.",
+          "position": [-2.7, 1.0, 0.6]
+        }
+      ],
+      "cardSide": "left"
+    },
+    {
+      "id": "cocina",
+      "eyebrow": "02 · Cocina",
+      "title": "Cocina Equipada",
+      "description": "Cocina abierta al salón con isla central de mármol, frentes en negro mate y columnas de nogal que ocultan los electrodomésticos integrados.",
+      "range": [0.22, 0.53],
+      "stats": [
+        {
+          "label": "Isla",
+          "value": "2,8 m"
+        },
+        {
+          "label": "Equipamiento",
+          "value": "Integrado"
+        }
+      ],
+      "focusPoint": [1.8, 1.2, -2.6],
+      "focusStrength": 0.85,
+      "annotations": [
+        {
+          "id": "cocina-isla",
+          "label": "Isla de mármol",
+          "detail": "Encimera de mármol blanco con fregadero bajo encimera y barra para cuatro taburetes.",
+          "position": [3.3, 1.02, -0.6]
+        },
+        {
+          "id": "cocina-hornos",
+          "label": "Electrodomésticos integrados",
+          "detail": "Horno y microondas en columna, placa de inducción y frigorífico panelado.",
+          "position": [5.5, 1.75, -2.82]
+        },
+        {
+          "id": "cocina-lampara",
+          "label": "Iluminación lineal",
+          "detail": "Luminaria suspendida regulable sobre la isla.",
+          "position": [3.2, 2.0, -1.0]
+        }
+      ]
+    },
+    {
+      "id": "dormitorio",
+      "eyebrow": "03 · Zona de noche",
+      "title": "Dormitorio Principal",
+      "description": "Suite con cabecero de lamas retroiluminado, armario a medida de pared a pared y salida directa a la terraza.",
+      "range": [0.53, 0.8],
+      "stats": [
+        {
+          "label": "Superficie",
+          "value": "30 m²"
+        },
+        {
+          "label": "Armario",
+          "value": "3,9 m"
+        }
+      ],
+      "focusPoint": [9.3, 0.6, -0.3],
+      "focusStrength": 0.9,
+      "annotations": [
+        {
+          "id": "dormitorio-cabecero",
+          "label": "Cabecero retroiluminado",
+          "detail": "Lamas de nogal con línea de luz cálida integrada.",
+          "position": [10.4, 1.6, 0.0]
+        },
+        {
+          "id": "dormitorio-armario",
+          "label": "Armario a medida",
+          "detail": "Frente continuo de nogal con interiores equipados.",
+          "position": [8.5, 1.7, -2.88]
+        }
+      ]
+    },
+    {
+      "id": "terraza",
+      "eyebrow": "04 · Exterior",
+      "title": "Terraza Panorámica",
+      "description": "Cuarenta y seis metros de terraza con tarima tecnológica, barandilla de vidrio y vistas despejadas sobre la ciudad.",
+      "range": [0.8, 1],
+      "stats": [
+        {
+          "label": "Superficie",
+          "value": "46 m²"
+        },
+        {
+          "label": "Vistas",
+          "value": "Despejadas"
+        }
+      ],
+      "focusPoint": [-3.0, 1.0, 14.0],
+      "focusStrength": 0.5,
+      "annotations": [
+        {
+          "id": "terraza-comedor",
+          "label": "Terraza exterior",
+          "detail": "Comedor de verano para cuatro comensales junto a la jardinera.",
+          "position": [1.7, 0.95, 5.0]
+        },
+        {
+          "id": "terraza-olivo",
+          "label": "Olivo centenario",
+          "detail": "Jardineras con riego automático por goteo.",
+          "position": [5.9, 2.55, 5.75]
+        }
+      ]
+    }
+  ]
+}
