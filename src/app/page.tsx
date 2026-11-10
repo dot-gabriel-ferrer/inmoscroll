@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Logo } from '@/components/ui/icons';
 import { formatPrice, tours } from '@/data/tours';
+import { publicUrl } from '@/lib/assets';
 
 const FEATURES = [
   ['Scroll determinista', 'Lenis y ScrollTrigger comparten el reloj de GSAP: la cámara avanza por un spline sin saltos ni temblores.'],
@@ -35,7 +36,7 @@ export default function Home() {
               <Link
                 href={`/tour/${tour.id}`}
                 className="group relative flex aspect-[16/11] flex-col justify-end overflow-hidden rounded-[28px] border border-white/15 bg-cover bg-center p-6 sm:p-8"
-                style={{ backgroundImage: `url(/thumbs/${tour.id}.jpg)` }}
+                style={{ backgroundImage: `url(${publicUrl(`/thumbs/${tour.id}.jpg`)})` }}
               >
                 <span className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/15 to-transparent transition-opacity group-hover:opacity-80" />
                 <span className="glass-dark absolute left-5 top-5 rounded-full px-3.5 py-1.5 text-xs font-medium">{tour.technology}</span>
