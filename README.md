@@ -102,6 +102,24 @@ descartan al decodificar.
 contenido (`?v=…`, de `src/data/asset-manifest.json`), así que un activo reexportado
 cambia de URL. `NEXT_PUBLIC_ASSET_BASE_URL` permite servirlos desde un bucket o CDN.
 
+## Despliegue en GitHub Pages
+
+`.github/workflows/deploy-pages.yml` publica el sitio en cada push a `main` (o a mano
+desde la pestaña Actions). Requiere activarlo una vez en el repositorio:
+**Settings → Pages → Build and deployment → Source: GitHub Actions**.
+
+El workflow hace una exportación estática (`STATIC_EXPORT=1`) con la ruta base que
+indica Pages (`NEXT_PUBLIC_BASE_PATH`, `/inmoscroll` para un sitio de proyecto). Para
+reproducirlo en local:
+
+```bash
+STATIC_EXPORT=1 NEXT_PUBLIC_BASE_PATH=/inmoscroll npm run build   # genera out/
+```
+
+En este modo no hay servidor, así que no se aplican las cabeceras `immutable` de
+`next.config.ts`: Pages sirve todo con su propia caché corta. Las URLs con hash siguen
+garantizando que un activo reexportado no se sirva obsoleto.
+
 ## Añadir un recorrido
 
 1. Optimiza el modelo (`npm run assets:optimize`) o exporta la captura a `.spz` /

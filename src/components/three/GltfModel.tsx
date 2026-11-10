@@ -5,13 +5,13 @@ import { useThree } from '@react-three/fiber';
 import { useEffect, useLayoutEffect } from 'react';
 import { Box3, type Material, type Mesh, type Object3D, type WebGLRenderer } from 'three';
 import { KTX2Loader } from 'three/addons/loaders/KTX2Loader.js';
-import { assetUrl } from '@/lib/assets';
+import { assetUrl, publicUrl } from '@/lib/assets';
 import { disposeObject3D } from '@/lib/dispose';
 import { tourRuntime } from '@/store/tourStore';
 import type { SceneTransform } from '@/types/tour';
 
-const DRACO_PATH = '/decoders/draco/';
-const BASIS_PATH = '/decoders/basis/';
+const DRACO_PATH = publicUrl('/decoders/draco/');
+const BASIS_PATH = publicUrl('/decoders/basis/');
 
 /** Mounted <GltfModel> instances per URL; the last one out frees the GPU memory. */
 const users = new Map<string, number>();
