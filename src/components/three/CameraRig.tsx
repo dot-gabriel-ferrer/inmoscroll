@@ -1,17 +1,13 @@
 'use client';
 
 import { useFrame, useThree } from '@react-three/fiber';
-import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { useEffect, useLayoutEffect, useMemo } from 'react';
+import { useLayoutEffect, useMemo } from 'react';
 import { MathUtils, type PerspectiveCamera } from 'three';
 import { CameraPath, cardSideAt, createPose } from '@/lib/cameraPath';
-import { tourRuntime, useTourStore } from '@/store/tourStore';
+import { useScrollProgress } from '@/lib/scrollProgress';
+import { tourRuntime } from '@/store/tourRuntime';
+import { useTourStore } from '@/store/tourStore';
 import type { Tour } from '@/types/tour';
-
-gsap.registerPlugin(ScrollTrigger);
-
-export const SCROLL_TRACK_ID = 'tour-scroll-track';
 
 /** Matches the `sm:` breakpoint where the chapter card moves from the bottom to the side. */
 const WIDE_BREAKPOINT = 640;
@@ -21,7 +17,7 @@ const MIN_HORIZONTAL_FOV = 50;
 const MAX_VERTICAL_FOV = 82;
 
 /**
- * Binds scroll progress to the camera rail. ScrollTrigger scrubs a 0..1 value, each
+ * Binds scroll progress to the camera rail. The scroll scrubs a 0..1 value, each
  * change invalidates the on-demand canvas, and the pose is applied inside useFrame so
  * the camera only moves in lockstep with a rendered frame.
  */
@@ -68,24 +64,10 @@ export function CameraRig({ tour }: { tour: Tour }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [path, size, tour.camera.fov]);
 
-  useEffect(() => {
-    const track = document.getElementById(SCROLL_TRACK_ID);
-    if (!track) return;
-    const state = { value: 0 };
-    const tween = gsap.to(state, {
-      value: 1,
-      ease: 'none',
-      scrollTrigger: { trigger: track, start: 'top top', end: 'bottom bottom', scrub: tour.camera.scrub },
-      onUpdate: () => {
-        useTourStore.getState().setProgress(state.value);
-        invalidate();
-      },
-    });
-    return () => {
-      tween.scrollTrigger?.kill();
-      tween.kill();
-    };
-  }, [tour.camera.scrub, invalidate]);
+  useScrollProgress(tour.camera.scrub, (progress) => {
+    useTourStore.getState().setProgress(progress);
+    invalidate();
+  });
 
   useFrame(() => applyPose(useTourStore.getState().progress));
 

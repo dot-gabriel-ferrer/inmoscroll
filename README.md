@@ -20,6 +20,7 @@ npm run dev          # http://localhost:3000
 | `npm run lint` / `npm run typecheck` | ESLint y TypeScript. |
 | `npm run assets:demo` | Regenera el ático de demostración (GLB + SPZ) y el manifiesto de hashes. |
 | `npm run assets:optimize -- in.glb out.glb [--ktx2]` | Optimiza un GLB para la plataforma. |
+| `npm run assets:prerender -- [--tour id] [--frames 181]` | Prerenderiza los recorridos a secuencias de imágenes (necesita Chrome). |
 
 Los decodificadores WASM (Draco y Basis/KTX2) se copian de `three` a
 `public/decoders` antes de `dev` y `build`; no se depende de ningún CDN externo.
@@ -33,6 +34,20 @@ Los decodificadores WASM (Draco y Basis/KTX2) se copian de `three` a
 Ambos se generan por código (`scripts/generate-demo-assets.mjs`): son una maqueta de
 volúmenes para ejercitar las dos tuberías de ingestión, no una captura real.
 
+## Dos visores
+
+Cada recorrido se puede ver de dos formas, con la misma interfaz y el mismo scroll:
+
+- **Imágenes (por defecto)**: una secuencia de fotogramas prerenderizados que avanza con
+  el scroll. No usa WebGL, ni el motor 3D, ni descarga el modelo: funciona en cualquier
+  navegador y no consume memoria gráfica.
+- **3D en vivo**: el motor en tiempo real. Se activa desde el menú (*Visualización*) en
+  los dispositivos con WebGL 2 y la elección se recuerda. Si el motor no arranca o
+  pierde el contexto gráfico sin remedio, se vuelve solo a las imágenes.
+
+Un recorrido sin fotogramas en `src/data/prerender-manifest.json` usa siempre el motor
+en vivo.
+
 ## Arquitectura
 
 ```
@@ -42,11 +57,30 @@ src/
   store/tourStore.ts         Estado global (Zustand) y valores por fotograma
   components/scroll/         Lenis + reloj de GSAP
   components/three/          Canvas, raíl de cámara, luz, efectos, GLB, splats, anotaciones
-  components/ui/             Barra superior, ficha de capítulo, raíl de progreso, menú, contacto
+  components/ui/             Visor de imágenes, barra superior, ficha de capítulo, raíl de progreso, menú, contacto
   lib/cameraPath.ts          Spline Catmull-Rom, look-ahead y encuadre
   lib/splat/                 Decodificadores, empaquetado, ordenación, worker y malla
 scripts/                     Generación y optimización de activos
 ```
+
+### Visor prerenderizado
+
+- `scripts/prerender-tours.mjs` compila el sitio, abre cada recorrido con `?capture` en
+  Chrome sin interfaz y hace avanzar el motor real paso a paso (`CaptureBridge.tsx`),
+  a calidad máxima. Guarda un WebP por paso en
+  `public/prerender/<id>/<formato>-<ambiente>/`, en dos formatos (apaisado 1280×720 y
+  vertical 720×1280 con el encuadre de móvil) y, en las mallas, de día y de noche.
+  `--frames` y `--scale` ajustan el número de pasos y la resolución: la demo de splats
+  se generó con `--frames 121 --scale 0.75`.
+- Junto a los fotogramas se guarda la posición en pantalla y la visibilidad de cada
+  anotación (`<formato>.json`), así que los marcadores no necesitan cámara ni rayos.
+- `FrameViewer.tsx` muestra un `<img>` y cambia su `src` según el scroll.
+  `FrameSequence` descarga primero los fotogramas cercanos a la posición actual y
+  después el resto de más grueso a más fino (cada 16, cada 8...); mientras falta uno se
+  muestra el más cercano ya descargado. Con *ahorro de datos* activado sólo se bajan
+  los cercanos.
+- Este visor es un chunk aparte que no importa `three`: `lib/chapters.ts`,
+  `lib/scrollProgress.ts` y el store no dependen del motor.
 
 ### Núcleo de render
 
@@ -150,11 +184,19 @@ garantizando que un activo reexportado no se sirva obsoleto.
 2. Ejecuta `npm run assets:demo` para actualizar el manifiesto de hashes.
 3. Crea `src/data/tours/<id>.json` siguiendo `src/types/tour.ts` y regístralo en
    `src/data/tours/index.ts`.
+4. Ejecuta `npm run assets:prerender -- --tour <id>` y sube los fotogramas generados.
+   Hay que repetirlo cada vez que cambien el modelo, la cámara, la luz o las
+   anotaciones del recorrido; si no, las imágenes quedan desfasadas respecto al 3D.
 
 ## Limitaciones conocidas
 
 - **Sombras**: el informe prescribe `PCFSoftShadowMap`, pero three.js 0.187 lo ha
   eliminado; se usa `PCFShadowMap`, que en esta versión ya filtra con suavizado.
+- **Fotogramas prerenderizados**: son discretos (181 pasos en la malla, 121 en los
+  splats), así que el movimiento es menos fluido que en vivo, y pesan más en red que
+  el modelo (entre 1,5 y 4 MB por secuencia, descargados de forma progresiva). No se
+  regeneran en CI: sin GPU cada fotograma tarda segundos. El visor sigue necesitando
+  JavaScript.
 - **N8AO a media resolución**: n8ao 2.0 no es compatible tal cual con three 0.187 en
   ese modo; `Effects.tsx` corrige el accesor de su render target y acota el muestreo
   del reescalado. Revisar al actualizar cualquiera de las dos librerías.

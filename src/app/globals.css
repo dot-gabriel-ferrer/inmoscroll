@@ -37,6 +37,35 @@ body {
   pointer-events: none;
 }
 
+/* Pre-rendered frames: a box with the frame's aspect ratio that always covers the
+   viewport, so markers placed in percentages stay glued to the picture when it crops. */
+.frame-cover {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 100%;
+  height: 100%;
+  width: max(100vw, calc(100vh * var(--frame-ratio)));
+  height: max(100vh, calc(100vw / var(--frame-ratio)));
+  width: max(100vw, calc(100dvh * var(--frame-ratio)));
+  height: max(100dvh, calc(100vw / var(--frame-ratio)));
+  transform: translate(-50%, -50%);
+}
+
+.frame-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  user-select: none;
+}
+
+.frame-marker {
+  position: absolute;
+  z-index: 10;
+  transform: translate(-50%, -50%);
+}
+
 /* backdrop-filter values go through a custom property: the CSS pipeline collapses
    literal values to the -webkit- prefix only, which Chromium ignores. */
 .glass {

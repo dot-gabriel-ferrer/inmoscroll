@@ -5,6 +5,7 @@ import { useEffect, useRef } from 'react';
 import type { Group } from 'three';
 import { assetUrl } from '@/lib/assets';
 import { GaussianSplatMesh } from '@/lib/splat/GaussianSplatMesh';
+import { tourRuntime } from '@/store/tourRuntime';
 import { useTourStore } from '@/store/tourStore';
 import type { SceneTransform } from '@/types/tour';
 
@@ -34,7 +35,9 @@ export function GaussianSplats({ url, transform }: GaussianSplatsProps) {
     });
     const parent = group.current;
     parent?.add(instance);
+    tourRuntime.settled = () => instance.settled;
     return () => {
+      tourRuntime.settled = () => true;
       parent?.remove(instance);
       instance.dispose();
     };

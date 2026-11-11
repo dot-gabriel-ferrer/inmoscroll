@@ -1,8 +1,6 @@
-import type { Object3D } from 'three';
-import { Vector3 } from 'three';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { chapterIndexAt } from '@/lib/cameraPath';
+import { chapterIndexAt } from '@/lib/chapters';
 import type { QualityTier } from '@/lib/quality';
 import type { TimeOfDay, Tour, TourAnnotation } from '@/types/tour';
 
@@ -103,6 +101,26 @@ export const useTourStore = create<TourState>()((set) => ({
     }),
 }));
 
+export type ViewMode = 'frames' | 'live';
+
+interface ViewState {
+  /** 'frames' plays the pre-rendered sequence; 'live' runs the real-time 3D engine. */
+  mode: ViewMode;
+  setMode: (mode: ViewMode) => void;
+}
+
+/** The visitor's choice of viewer, remembered across visits. Tours without a pre-render ignore it. */
+export const useViewPreference = create<ViewState>()(
+  persist((set) => ({ mode: 'frames', setMode: (mode) => set({ mode }) }), { name: 'inmoscroll-view' }),
+);
+
+/** Changes viewer mid-tour: the incoming one starts from a clean loading state. */
+export function switchView(mode: ViewMode) {
+  if (useViewPreference.getState().mode === mode) return;
+  useViewPreference.getState().setMode(mode);
+  useTourStore.setState({ loading: initialLoading });
+}
+
 interface FavoritesState {
   ids: string[];
   toggle: (id: string) => void;
@@ -118,15 +136,3 @@ export const useFavorites = create<FavoritesState>()(
     { name: 'inmoscroll-favorites' },
   ),
 );
-
-/**
- * Per-frame values shared between scene components. Kept outside React state on
- * purpose: they change every rendered frame and must never trigger re-renders.
- */
-export const tourRuntime = {
-  /** 0..1 weight of the active chapter's point of interest. */
-  focus: 0,
-  focusPoint: new Vector3(),
-  /** Opaque meshes that can hide annotations. */
-  occluders: [] as Object3D[],
-};

@@ -3,35 +3,20 @@
 import { Html } from '@react-three/drei';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useMemo, useRef } from 'react';
-import { Raycaster, Vector3 } from 'three';
-import { tourRuntime, useTourStore } from '@/store/tourStore';
+import { Vector3 } from 'three';
+import { AnnotationPill, useAnnotationSelection } from '@/components/ui/AnnotationPill';
+import { useTourStore } from '@/store/tourStore';
 import type { TourAnnotation } from '@/types/tour';
+import { createOcclusionRaycaster, isOccluded } from './occlusion';
 
-/** Markers closer than this to a surface are considered to sit on it, not behind it. */
-const SURFACE_TOLERANCE = 0.12;
-
-const direction = new Vector3();
-const forward = new Vector3();
 const point = new Vector3();
 
 function Marker({ annotation, register }: { annotation: TourAnnotation; register: (el: HTMLDivElement | null) => void }) {
-  const selected = useTourStore((state) => state.selectedAnnotation === annotation.id);
-  const selectAnnotation = useTourStore((state) => state.selectAnnotation);
+  const { selected, toggle } = useAnnotationSelection(annotation.id);
 
   return (
     <Html position={annotation.position} center zIndexRange={[20, 10]}>
-      <div ref={register} className="annotation" data-occluded="true" data-selected={selected}>
-        <button
-          type="button"
-          className="annotation-pill"
-          aria-expanded={selected}
-          onClick={() => selectAnnotation(selected ? null : annotation.id)}
-        >
-          <span className="annotation-dot" aria-hidden />
-          {annotation.label}
-        </button>
-        {selected && annotation.detail && <p className="annotation-detail">{annotation.detail}</p>}
-      </div>
+      <AnnotationPill annotation={annotation} selected={selected} onToggle={toggle} register={register} />
     </Html>
   );
 }
@@ -45,37 +30,23 @@ function Marker({ annotation, register }: { annotation: TourAnnotation; register
 export function Annotations() {
   const chapter = useTourStore((state) => state.tour?.chapters[state.activeChapter]);
   const elements = useRef(new Map<string, HTMLDivElement>());
-  const raycaster = useMemo(() => {
-    const instance = new Raycaster();
-    (instance as Raycaster & { firstHitOnly?: boolean }).firstHitOnly = true;
-    return instance;
-  }, []);
+  const raycaster = useMemo(() => createOcclusionRaycaster(), []);
   const invalidate = useThree((state) => state.invalidate);
+  // <Html> re-targets itself when the canvas connects its events, which breaks its own
+  // teardown if it was already mounted: wait for the connection before mounting markers.
+  const connected = useThree((state) => Boolean(state.events.connected));
 
   useFrame(({ camera }) => {
     if (!chapter) return;
-    camera.getWorldDirection(forward);
     for (const annotation of chapter.annotations) {
       const element = elements.current.get(annotation.id);
       if (!element) continue;
-      point.set(...annotation.position);
-      direction.copy(point).sub(camera.position);
-      const distance = direction.length();
-      direction.divideScalar(distance || 1);
-
-      let occluded = direction.dot(forward) < 0.2;
-      if (!occluded && tourRuntime.occluders.length > 0) {
-        raycaster.set(camera.position, direction);
-        raycaster.near = 0;
-        raycaster.far = Math.max(0, distance - SURFACE_TOLERANCE);
-        occluded = raycaster.intersectObjects(tourRuntime.occluders, false).length > 0;
-      }
-      const value = occluded ? 'true' : 'false';
+      const value = isOccluded(camera, point.set(...annotation.position), raycaster) ? 'true' : 'false';
       if (element.dataset.occluded !== value) element.dataset.occluded = value;
     }
   });
 
-  if (!chapter) return null;
+  if (!chapter || !connected) return null;
   return (
     <>
       {chapter.annotations.map((annotation) => (

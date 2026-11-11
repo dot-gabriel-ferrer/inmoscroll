@@ -126,6 +126,7 @@ const RESORT_THRESHOLD = 0.99995;
  * The depth order depends solely on the view direction, so it is re-sorted on rotation.
  */
 export class GaussianSplatMesh extends Mesh<InstancedBufferGeometry, ShaderMaterial> {
+  override readonly type: string = 'GaussianSplatMesh';
   private readonly worker: Worker;
   private readonly modelView = new Matrix4();
   private readonly direction = new Vector3();
@@ -174,6 +175,11 @@ export class GaussianSplatMesh extends Mesh<InstancedBufferGeometry, ShaderMater
     worker.onmessage = (event: MessageEvent<SplatWorkerResponse>) => this.handleMessage(event.data);
     worker.onerror = (event) => this.events.onError?.(event.message || 'Splat worker failed');
     this.send({ type: 'load', url });
+  }
+
+  /** True once loaded and no re-sort is in flight: the last frame drawn used the right order. */
+  get settled(): boolean {
+    return this.orderAttribute !== null && !this.sorting;
   }
 
   private send(message: SplatWorkerRequest, transfer: Transferable[] = []) {

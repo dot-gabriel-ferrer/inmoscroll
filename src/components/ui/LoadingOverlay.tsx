@@ -1,14 +1,12 @@
 'use client';
 
-import { useProgress } from '@react-three/drei';
 import { useTourStore } from '@/store/tourStore';
 import type { Tour } from '@/types/tour';
 import { Logo } from './icons';
 
 export function LoadingOverlay({ tour }: { tour: Tour }) {
   const loading = useTourStore((state) => state.loading);
-  const loaderProgress = useProgress((state) => state.progress);
-  const progress = Math.max(loading.progress, tour.scene.type === 'gltf' ? loaderProgress / 100 : 0);
+  const { progress } = loading;
 
   if (loading.error) {
     return (

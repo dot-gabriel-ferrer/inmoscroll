@@ -1,5 +1,8 @@
 import { CatmullRomCurve3, MathUtils, Vector3 } from 'three';
-import type { Tour, TourChapter, Vec3 } from '@/types/tour';
+import type { Tour, Vec3 } from '@/types/tour';
+import { chapterIndexAt, focusWeight } from './chapters';
+
+export { cardSideAt, chapterIndexAt, focusWeight } from './chapters';
 
 export interface CameraPose {
   position: Vector3;
@@ -7,24 +10,6 @@ export interface CameraPose {
   /** 0..1 weight of the active chapter's focus point (drives depth of field). */
   focus: number;
   focusPoint: Vector3 | null;
-}
-
-export function chapterIndexAt(chapters: TourChapter[], progress: number): number {
-  for (let i = chapters.length - 1; i >= 0; i--) {
-    if (progress >= chapters[i].range[0]) return i;
-  }
-  return 0;
-}
-
-/** Bell-shaped weight: 0 at the chapter edges, 1 across its middle. */
-export function focusWeight(range: [number, number], progress: number): number {
-  const [start, end] = range;
-  if (progress <= start || progress >= end) return 0;
-  const edge = (end - start) * 0.45;
-  return Math.min(
-    MathUtils.smoothstep(progress, start, start + edge),
-    1 - MathUtils.smoothstep(progress, end - edge, end),
-  );
 }
 
 /**
@@ -85,23 +70,4 @@ export class CameraPath {
 
 export function createPose(): CameraPose {
   return { position: new Vector3(), target: new Vector3(), focus: 0, focusPoint: null };
-}
-
-/** Half-width (in progress units) of the hand-over between two chapters' card sides. */
-const SIDE_BLEND = 0.025;
-
-/**
- * Horizontal framing bias in -1..1: negative while the chapter card is docked on the
- * left, positive on the right, easing across chapter boundaries. It is a pure function
- * of scroll progress, so it needs no animation loop of its own.
- */
-export function cardSideAt(chapters: TourChapter[], progress: number): number {
-  const sign = (chapter: TourChapter) => (chapter.cardSide === 'left' ? -1 : 1);
-  if (chapters.length === 0) return 0;
-  let side = sign(chapters[0]);
-  for (let i = 1; i < chapters.length; i++) {
-    const boundary = chapters[i].range[0];
-    side = MathUtils.lerp(side, sign(chapters[i]), MathUtils.smoothstep(progress, boundary - SIDE_BLEND, boundary + SIDE_BLEND));
-  }
-  return side;
 }

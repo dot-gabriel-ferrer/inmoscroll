@@ -1,10 +1,12 @@
 'use client';
 
+import { useProgress } from '@react-three/drei';
 import { Canvas, useThree } from '@react-three/fiber';
 import { Component, lazy, type ReactNode, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Box3 } from 'three';
-import { detectDeviceProfile, pixelRatioCap, type QualityTier } from '@/lib/quality';
-import { useTourStore } from '@/store/tourStore';
+import { getPrerender } from '@/lib/prerender';
+import { type DeviceProfile, detectDeviceProfile, pixelRatioCap, type QualityTier } from '@/lib/quality';
+import { switchView, useTourStore } from '@/store/tourStore';
 import type { Tour } from '@/types/tour';
 import { Annotations } from './Annotations';
 import { CameraRig } from './CameraRig';
@@ -16,6 +18,10 @@ import { SunLight } from './SunLight';
 
 // Tier 1 devices and splat tours never download or parse the post-processing code.
 const Effects = lazy(() => import('./Effects'));
+const CaptureBridge = lazy(() => import('./CaptureBridge'));
+
+/** Pre-rendering always runs at full quality, whatever machine does it. */
+const CAPTURE_PROFILE: DeviceProfile = { tier: 3, basicShadows: false, shadowMapSize: 2048 };
 
 /** Context losses tolerated in quick succession before giving up. */
 const MAX_RECOVERIES = 2;
@@ -46,6 +52,18 @@ function ContextLossGuard({ onLost }: { onLost: () => void }) {
   return null;
 }
 
+/** Mirrors the model download into the loading overlay, which knows nothing about the 3D loaders. */
+function LoaderProgress() {
+  const progress = useProgress((state) => state.progress) / 100;
+
+  useEffect(() => {
+    const { loading, setLoading } = useTourStore.getState();
+    if (!loading.ready && progress > loading.progress) setLoading({ progress: Math.min(0.95, progress) });
+  }, [progress]);
+
+  return null;
+}
+
 /** Turns a renderer that cannot start (no WebGL, GPU process gone) into the tour's error screen. */
 class RendererBoundary extends Component<{ onError: () => void; children: ReactNode }, { failed: boolean }> {
   state = { failed: false };
@@ -63,8 +81,8 @@ class RendererBoundary extends Component<{ onError: () => void; children: ReactN
   }
 }
 
-export default function TourCanvas({ tour }: { tour: Tour }) {
-  const profile = useMemo(() => detectDeviceProfile(), []);
+export default function TourCanvas({ tour, capture = false }: { tour: Tour; capture?: boolean }) {
+  const profile = useMemo(() => (capture ? CAPTURE_PROFILE : detectDeviceProfile()), [capture]);
   const [shadowBounds, setShadowBounds] = useState<Box3 | null>(null);
   // Bumped to rebuild the renderer on a fresh WebGL context after the old one is lost.
   const [session, setSession] = useState(0);
@@ -102,6 +120,15 @@ export default function TourCanvas({ tour }: { tour: Tour }) {
     [isMesh, profile, lowMemory],
   );
 
+  // Last resort: a tour with pre-rendered frames falls back to them instead of failing.
+  const fail = useCallback(
+    (message: string) => {
+      if (!capture && getPrerender(tour.id)) switchView('frames');
+      else setLoading({ error: message });
+    },
+    [capture, tour.id, setLoading],
+  );
+
   const restart = useCallback(() => {
     recovery.current.at = performance.now();
     setShadowBounds(null);
@@ -113,7 +140,7 @@ export default function TourCanvas({ tour }: { tour: Tour }) {
     const state = recovery.current;
     if (performance.now() - state.at > STABLE_MS) state.count = 0;
     if (state.count >= MAX_RECOVERIES) {
-      setLoading({ error: CONTEXT_LOST_MESSAGE });
+      fail(CONTEXT_LOST_MESSAGE);
       return;
     }
     state.count += 1;
@@ -126,7 +153,7 @@ export default function TourCanvas({ tour }: { tour: Tour }) {
       // Browsers reclaim the context of background tabs; rebuild once the tab is back.
       setAwaitingVisible(true);
     }
-  }, [restart, setLoading]);
+  }, [restart, fail]);
 
   useEffect(() => {
     if (!awaitingVisible) return;
@@ -139,10 +166,11 @@ export default function TourCanvas({ tour }: { tour: Tour }) {
     return () => document.removeEventListener('visibilitychange', resume);
   }, [awaitingVisible, restart]);
 
-  const handleRendererError = useCallback(() => setLoading({ error: WEBGL_UNAVAILABLE_MESSAGE }), [setLoading]);
+  const handleRendererError = useCallback(() => fail(WEBGL_UNAVAILABLE_MESSAGE), [fail]);
 
   return (
     <RendererBoundary onError={handleRendererError}>
+      {isMesh && <LoaderProgress />}
       <Canvas
         key={session}
         // Resolution follows the quality tier; see pixelRatioCap.
@@ -183,7 +211,13 @@ export default function TourCanvas({ tour }: { tour: Tour }) {
             <Effects quality={quality as 2 | 3} />
           </Suspense>
         )}
-        <PerformanceGovernor />
+        {capture ? (
+          <Suspense fallback={null}>
+            <CaptureBridge tour={tour} />
+          </Suspense>
+        ) : (
+          <PerformanceGovernor />
+        )}
       </Canvas>
     </RendererBoundary>
   );
