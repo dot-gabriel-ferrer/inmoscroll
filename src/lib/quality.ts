@@ -1,6 +1,8 @@
 /**
- * Quality tiers drive the adaptive regression described in the architecture report:
- * 3 = SSAO + bloom + depth of field, 2 = depth of field dropped, 1 = SSAO dropped too.
+ * Quality tiers drive the adaptive regression described in the architecture report.
+ * Meshes: 3 = SSAO + bloom + depth of field, 2 = depth of field dropped, 1 = no
+ * post-processing at all (the scene is drawn straight to the canvas). Every tier also
+ * lowers the resolution ceiling, which is the only lever for splat scenes.
  */
 export type QualityTier = 1 | 2 | 3;
 
@@ -19,6 +21,18 @@ export function detectDeviceProfile(): DeviceProfile {
   if (coarse && (cores <= 4 || memory <= 2)) return { tier: 1, basicShadows: true, shadowMapSize: 1024 };
   if (coarse || cores <= 4 || memory <= 4) return { tier: 2, basicShadows: false, shadowMapSize: 1024 };
   return { tier: 3, basicShadows: false, shadowMapSize: 2048 };
+}
+
+/**
+ * Device pixel ratio ceiling per tier. Fill rate and every screen-sized buffer scale
+ * with its square, so resolution is the first thing to give: splats in particular are
+ * pure overdraw. After a lost WebGL context the scene stays at CSS resolution.
+ */
+export function pixelRatioCap(tier: QualityTier, scene: 'gltf' | 'splat', lowMemory = false): number {
+  if (lowMemory) return 1;
+  if (tier === 3) return 2;
+  if (tier === 2) return 1.5;
+  return scene === 'splat' ? 1.25 : 1.5;
 }
 
 /** Frame budget (ms) above which a frame counts as dropped, and how long that may last. */

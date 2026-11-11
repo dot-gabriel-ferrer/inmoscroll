@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { tours } from '@/data/tours';
 import type { Tour } from '@/types/tour';
 import { CameraPath, cardSideAt, chapterIndexAt, createPose, focusWeight } from './cameraPath';
-import { FrameBudgetMonitor } from './quality';
+import { FrameBudgetMonitor, pixelRatioCap, type QualityTier } from './quality';
 
 const base = {
   camera: {
@@ -121,5 +121,22 @@ describe('FrameBudgetMonitor', () => {
   it('never fires within budget', () => {
     const monitor = new FrameBudgetMonitor();
     for (let i = 0; i < 500; i++) expect(monitor.sample(16.7)).toBe(false);
+  });
+});
+
+describe('pixelRatioCap', () => {
+  const tiers: QualityTier[] = [3, 2, 1];
+
+  it('never raises the resolution as the tier drops', () => {
+    for (const scene of ['gltf', 'splat'] as const) {
+      const caps = tiers.map((tier) => pixelRatioCap(tier, scene));
+      expect(caps[0]).toBe(2);
+      expect(caps[1]).toBeLessThan(caps[0]);
+      expect(caps[2]).toBeLessThanOrEqual(caps[1]);
+    }
+  });
+
+  it('pins the scene to CSS resolution after a context loss', () => {
+    for (const tier of tiers) expect(pixelRatioCap(tier, 'splat', true)).toBe(1);
   });
 });

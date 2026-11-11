@@ -156,7 +156,8 @@ export class GaussianSplatMesh extends Mesh<InstancedBufferGeometry, ShaderMater
       transparent: true,
       // Screen-space quads have no meaningful facing.
       side: DoubleSide,
-      depthTest: true,
+      // Draw order is the depth sort; the splat canvas has no depth buffer at all.
+      depthTest: false,
       depthWrite: false,
       // Premultiplied "over" compositing; requires back-to-front order.
       blending: CustomBlending,
@@ -195,6 +196,10 @@ export class GaussianSplatMesh extends Mesh<InstancedBufferGeometry, ShaderMater
         texture.magFilter = NearestFilter;
         texture.generateMipmaps = false;
         texture.needsUpdate = true;
+        // The GPU holds the only copy needed: release the 32 bytes per splat on the heap.
+        texture.onUpdate = () => {
+          (texture.image as { data: Uint32Array | null }).data = null;
+        };
         this.texture = texture;
         this.material.uniforms.splatTexture.value = texture;
 
