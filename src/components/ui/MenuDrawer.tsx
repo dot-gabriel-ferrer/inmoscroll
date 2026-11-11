@@ -1,12 +1,21 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useSyncExternalStore } from 'react';
 import { formatPrice } from '@/data/tours';
-import { useTourStore } from '@/store/tourStore';
+import { getPrerender } from '@/lib/prerender';
+import { switchView, useTourStore, useViewPreference } from '@/store/tourStore';
 import type { Tour } from '@/types/tour';
 import { CloseIcon, MoonIcon, SunIcon } from './icons';
 
-const QUALITY_LABEL = { 3: 'Alta · SSAO + Bloom + Profundidad de campo', 2: 'Media · SSAO + Bloom', 1: 'Básica · Bloom' } as const;
+const QUALITY_LABEL = { 3: 'Alta · SSAO + Bloom + Profundidad de campo', 2: 'Media · SSAO + Bloom', 1: 'Básica · sin postprocesado' } as const;
+
+const VIEWS = [
+  ['frames', 'Imágenes'],
+  ['live', '3D en vivo'],
+] as const;
+
+const subscribeNever = () => () => {};
+const supportsWebGL = () => typeof WebGL2RenderingContext !== 'undefined';
 
 export function MenuDrawer({ tour, onJump }: { tour: Tour; onJump: (chapterIndex: number) => void }) {
   const open = useTourStore((state) => state.menuOpen);
@@ -17,6 +26,11 @@ export function MenuDrawer({ tour, onJump }: { tour: Tour; onJump: (chapterIndex
   const quality = useTourStore((state) => state.quality);
   const dialog = useRef<HTMLDialogElement>(null);
   const isMesh = tour.scene.type === 'gltf';
+  const prerender = getPrerender(tour.id);
+  const view = useViewPreference((state) => state.mode);
+  const live = !prerender || view === 'live';
+  // The real-time engine is only offered where it can run at all.
+  const canGoLive = useSyncExternalStore(subscribeNever, supportsWebGL, () => false);
 
   useEffect(() => {
     const element = dialog.current;
@@ -102,9 +116,33 @@ export function MenuDrawer({ tour, onJump }: { tour: Tour; onJump: (chapterIndex
           </>
         )}
 
+        {prerender && canGoLive && (
+          <>
+            <h3 className="mt-8 text-xs font-semibold uppercase tracking-[0.18em] text-ink/60">Visualización</h3>
+            <div role="group" aria-label="Visualización" className="mt-3 grid grid-cols-2 gap-1 rounded-2xl bg-white/45 p-1">
+              {VIEWS.map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  aria-pressed={view === value}
+                  onClick={() => switchView(value)}
+                  className={`rounded-xl py-2.5 text-sm font-medium transition-colors ${view === value ? 'bg-ink text-white' : 'hover:bg-white/70'}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <p className="mt-2 text-xs leading-relaxed text-ink/60">
+              {live
+                ? 'Motor 3D en tiempo real: máxima nitidez, necesita una tarjeta gráfica capaz.'
+                : 'Recorrido prerenderizado: funciona en cualquier dispositivo y no usa la tarjeta gráfica.'}
+            </p>
+          </>
+        )}
+
         <div className="mt-auto pt-8 text-xs leading-relaxed text-ink/60">
           <p>{tour.technology}</p>
-          {isMesh && <p>Calidad adaptativa: {QUALITY_LABEL[quality]}</p>}
+          {isMesh && live && canGoLive && <p>Calidad adaptativa: {QUALITY_LABEL[quality]}</p>}
         </div>
       </div>
     </dialog>

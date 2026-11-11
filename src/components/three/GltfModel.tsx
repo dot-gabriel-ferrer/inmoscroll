@@ -7,7 +7,7 @@ import { Box3, type Material, type Mesh, type Object3D, type WebGLRenderer } fro
 import { KTX2Loader } from 'three/addons/loaders/KTX2Loader.js';
 import { assetUrl, publicUrl } from '@/lib/assets';
 import { disposeObject3D } from '@/lib/dispose';
-import { tourRuntime } from '@/store/tourStore';
+import { tourRuntime } from '@/store/tourRuntime';
 import type { SceneTransform } from '@/types/tour';
 
 const DRACO_PATH = publicUrl('/decoders/draco/');

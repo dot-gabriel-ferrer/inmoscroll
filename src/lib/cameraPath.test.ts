@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { tours } from '@/data/tours';
 import type { Tour } from '@/types/tour';
 import { CameraPath, cardSideAt, chapterIndexAt, createPose, focusWeight } from './cameraPath';
+import { frameIndexAt, nearestLoaded, refinementOrder } from './prerender';
 import { FrameBudgetMonitor, pixelRatioCap, type QualityTier } from './quality';
 
 const base = {
@@ -138,5 +139,31 @@ describe('pixelRatioCap', () => {
 
   it('pins the scene to CSS resolution after a context loss', () => {
     for (const tier of tiers) expect(pixelRatioCap(tier, 'splat', true)).toBe(1);
+  });
+});
+
+describe('pre-rendered sequences', () => {
+  it('maps scroll progress onto frame indices', () => {
+    expect(frameIndexAt(0, 181)).toBe(0);
+    expect(frameIndexAt(0.5, 181)).toBe(90);
+    expect(frameIndexAt(1, 181)).toBe(180);
+    expect(frameIndexAt(1.2, 181)).toBe(180);
+    expect(frameIndexAt(-0.1, 181)).toBe(0);
+  });
+
+  it('downloads every frame exactly once, coarse strides first', () => {
+    const order = refinementOrder(181);
+    expect([...order].sort((a, b) => a - b)).toEqual(Array.from({ length: 181 }, (_, i) => i));
+    expect(order.slice(0, 12)).toEqual([0, 16, 32, 48, 64, 80, 96, 112, 128, 144, 160, 176]);
+  });
+
+  it('falls back to the closest frame that has loaded', () => {
+    const loaded = new Uint8Array(10);
+    expect(nearestLoaded(loaded, 4)).toBe(-1);
+    loaded[1] = 1;
+    loaded[8] = 1;
+    expect(nearestLoaded(loaded, 4)).toBe(1);
+    expect(nearestLoaded(loaded, 5)).toBe(8);
+    expect(nearestLoaded(loaded, 8)).toBe(8);
   });
 });

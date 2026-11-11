@@ -16,7 +16,7 @@ import {
 } from 'postprocessing';
 import { useEffect, useRef } from 'react';
 import { HalfFloatType } from 'three';
-import { tourRuntime } from '@/store/tourStore';
+import { tourRuntime } from '@/store/tourRuntime';
 
 const MAX_BOKEH = 3.5;
 

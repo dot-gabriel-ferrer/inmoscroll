@@ -1,0 +1,37 @@
+{
+  "atico-mirador": {
+    "frames": 181,
+    "times": [
+      "day",
+      "night"
+    ],
+    "variants": {
+      "landscape": {
+        "width": 1280,
+        "height": 720
+      },
+      "portrait": {
+        "width": 720,
+        "height": 1280
+      }
+    },
+    "version": "b05f79b369"
+  },
+  "atico-mirador-splat": {
+    "frames": 121,
+    "times": [
+      "day"
+    ],
+    "variants": {
+      "landscape": {
+        "width": 960,
+        "height": 540
+      },
+      "portrait": {
+        "width": 540,
+        "height": 960
+      }
+    },
+    "version": "2bd6342da7"
+  }
+}
