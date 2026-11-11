@@ -63,6 +63,28 @@ body {
   text-shadow: 0 1px 12px rgb(0 0 0 / 0.45);
 }
 
+/* Lowest quality tier: a backdrop blur re-filters the canvas behind every panel on each
+   frame, so the panels turn (almost) opaque instead. */
+[data-quality="1"] .glass {
+  --backdrop: none;
+  background: rgb(246 242 236 / 0.94);
+}
+
+[data-quality="1"] .glass-dark {
+  --backdrop: none;
+  background: rgb(38 33 29 / 0.9);
+}
+
+[data-quality="1"] .annotation-pill {
+  --backdrop: none;
+  background: rgb(30 26 23 / 0.78);
+}
+
+[data-quality="1"] .annotation-detail {
+  --backdrop: none;
+  background: rgb(255 255 255 / 0.95);
+}
+
 /* Spatial annotations (rendered by drei <Html> inside the stage). */
 .annotation {
   display: flex;

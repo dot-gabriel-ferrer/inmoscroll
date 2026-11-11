@@ -50,9 +50,9 @@ scripts/                     Generación y optimización de activos
 
 ### Núcleo de render
 
-- **Canvas** (`TourCanvas.tsx`): `dpr = min(devicePixelRatio, 2)`, `frameloop="demand"`,
-  redimensionado con debounce y contenedor fijo a `100vh`. En reposo no se dibuja
-  ningún fotograma.
+- **Canvas** (`TourCanvas.tsx`): `frameloop="demand"`, redimensionado con debounce y
+  contenedor fijo a `100vh`. En reposo no se dibuja ningún fotograma. La resolución
+  depende del nivel de calidad (ver *Calidad adaptativa*).
 - **Reloj único** (`SmoothScrollProvider.tsx`): Lenis sin rAF propio, avanzado desde
   `gsap.ticker`; `ScrollTrigger.update` en el callback de Lenis; `lagSmoothing(0)`.
 - **Cámara** (`CameraRig.tsx`, `cameraPath.ts`): `CatmullRomCurve3` por los waypoints
@@ -61,17 +61,39 @@ scripts/                     Generación y optimización de activos
   punto de interés.
 - **Memoria** (`GltfModel.tsx`, `dispose.ts`): al desmontar se liberan geometrías,
   materiales y texturas y se llama a `useGLTF.clear()`.
+- **Pérdida de contexto** (`TourCanvas.tsx`): si el navegador retira el contexto WebGL
+  (falta de VRAM, pestaña en segundo plano), el canvas se reconstruye solo sobre un
+  contexto nuevo conservando la posición del recorrido. Si ocurre con la página
+  visible, vuelve con un nivel de calidad menos y `dpr = 1`. El aviso de error sólo
+  aparece tras tres pérdidas seguidas o si WebGL no puede iniciarse.
+
+### Calidad adaptativa
+
+`detectDeviceProfile` (`lib/quality.ts`) elige el nivel inicial según núcleos, memoria
+y tipo de puntero, y `PerformanceGovernor` baja un nivel cada vez que el render supera
+el presupuesto de 60 fps durante más de un segundo de scroll continuo.
+
+| Nivel | Malla GLB | Splats | `dpr` máximo |
+| --- | --- | --- | --- |
+| 3 | Oclusión, bloom, profundidad de campo, SMAA | Resolución completa | 2 |
+| 2 | Oclusión (menos muestras), bloom, FXAA | Resolución reducida | 1,5 |
+| 1 | Sin postprocesado: render directo al canvas | Resolución reducida | 1,5 (malla) · 1,25 (splats) |
+
+En el nivel 1 el código de postprocesado ni siquiera se descarga (se carga con
+`lazy`), el canvas usa MSAA si el dispositivo arranca en ese nivel, y los paneles de la
+interfaz sustituyen el desenfoque de fondo por un color casi opaco
+(`[data-quality="1"]` en `globals.css`).
 
 ### Luz y postprocesado
 
 - Una única luz direccional proyecta sombras; su frustum ortográfico se ajusta a la
   caja de la geometría y el mapa se renderiza una vez (`autoUpdate = false`),
   repintándose sólo al cambiar entre día y noche. No hay luces puntuales con sombra.
-- `EffectComposer` con buffers `HalfFloatType`: oclusión ambiental (N8AO), Bloom con
-  umbral, profundidad de campo ligada al punto de interés del capítulo y tone mapping
-  ACES Filmic.
-- `PerformanceGovernor`: si el render supera el presupuesto de 60 fps durante más de
-  un segundo, se desactiva primero la profundidad de campo y después la oclusión.
+- `Effects.tsx` monta a mano un `EffectComposer` de `postprocessing` con buffers
+  `HalfFloatType`: oclusión ambiental (N8AO a media resolución y sin los renders
+  adicionales de transparencias), Bloom con umbral, profundidad de campo ligada al
+  punto de interés del capítulo y tone mapping ACES Filmic. El antialiasing va en una
+  pasada final, sobre la imagen ya tonemapeada.
 
 ### Anotaciones
 
@@ -90,7 +112,8 @@ ocultan con una transición CSS de opacidad.
   sort sobre la profundidad cuantizada a 16 bits, y sólo se repite cuando gira la
   cámara (el orden no depende de la traslación).
 - `GaussianSplatMesh` dibuja quads instanciados leyendo posición, covarianza y color de
-  una textura `RGBA32UI`.
+  una textura `RGBA32UI`. Tras subirla a la GPU se libera la copia en memoria, y el
+  canvas de splats se crea sin buffer de profundidad (el orden lo da la ordenación).
 
 Sólo se usa el término DC del color: los armónicos esféricos de orden superior se
 descartan al decodificar.
@@ -132,6 +155,11 @@ garantizando que un activo reexportado no se sirva obsoleto.
 
 - **Sombras**: el informe prescribe `PCFSoftShadowMap`, pero three.js 0.187 lo ha
   eliminado; se usa `PCFShadowMap`, que en esta versión ya filtra con suavizado.
+- **N8AO a media resolución**: n8ao 2.0 no es compatible tal cual con three 0.187 en
+  ese modo; `Effects.tsx` corrige el accesor de su render target y acota el muestreo
+  del reescalado. Revisar al actualizar cualquiera de las dos librerías.
+- **Reloj en reposo**: GSAP y ScrollTrigger mantienen sus `requestAnimationFrame`
+  activos aunque no se dibuje nada.
 - **KTX2**: el cargador está conectado, pero el modelo de demostración no tiene
   texturas, así que esa ruta (y `--ktx2` en el script de optimización) no se ha
   ejercitado.
